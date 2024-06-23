@@ -154,7 +154,7 @@ class LoginPage extends StatelessWidget {
                                                   Navigator.of(context).pop();
                                                   ScaffoldMessenger.of(context).showSnackBar(
                                                     SnackBar(
-                                                      content: Text('Incorrect password or error occurred'),
+                                                      content: Text('Password was incorrect or server not reachable'),
                                                       duration: Duration(seconds: 2),
                                                     ),
                                                   );
