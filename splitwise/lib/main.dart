@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:webview_flutter/webview_flutter.dart';
 import 'home_page.dart'; // Import the HomePage widget
 
 void main() {
@@ -104,7 +106,7 @@ class LoginPage extends StatelessWidget {
                           ElevatedButton(
                             onPressed: () {
                               String email = emailController.text;
-                              String phpFileUrl = "https://splitwise1.000webhostapp.com/login.php?email=$email";
+                              String phpFileUrl = "https://splitwise1.000webhostapp.com/login/login.php?email=$email";
 
                               http.get(Uri.parse(phpFileUrl)).then((response) {
                                 if (response.statusCode == 200) {
@@ -139,7 +141,7 @@ class LoginPage extends StatelessWidget {
                                           TextButton(
                                             onPressed: () {
                                               String password = passwordController.text;
-                                              String verifyUrl = "https://splitwise1.000webhostapp.com/login_verify.php?email=$email&password=$password";
+                                              String verifyUrl = "https://splitwise1.000webhostapp.com/login/login_verify.php?email=$email&password=$password";
 
                                               http.get(Uri.parse(verifyUrl)).then((verifyResponse) {
                                                 if (verifyResponse.statusCode == 200) {
@@ -204,6 +206,19 @@ class LoginPage extends StatelessWidget {
                               backgroundColor: Colors.pink,
                             ),
                           ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => WebViewPage()),
+                              );
+                            },
+                            child: const Text('Create Account'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -213,6 +228,44 @@ class LoginPage extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class WebViewPage extends StatefulWidget {
+  @override
+  _WebViewPageState createState() => _WebViewPageState();
+}
+
+class _WebViewPageState extends State<WebViewPage> {
+  final Completer<WebViewController> _controller = Completer<WebViewController>();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Create Account'),
+      ),
+      body: WebView(
+        initialUrl: 'https://splitwise1.000webhostapp.com/account_creation/index.html',
+        javascriptMode: JavascriptMode.unrestricted,
+        onWebViewCreated: (WebViewController webViewController) {
+          _controller.complete(webViewController);
+        },
+        navigationDelegate: (NavigationRequest request) {
+          // Example of how to handle navigation requests
+          if (request.url.startsWith('https://www.youtube.com/')) {
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
+        onPageStarted: (String url) {
+          // Handle page start event
+        },
+        onPageFinished: (String url) {
+          // Handle page finished event
+        },
       ),
     );
   }
