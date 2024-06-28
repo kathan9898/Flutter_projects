@@ -15,6 +15,11 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   final TextEditingController _groupNameController = TextEditingController();
   final TextEditingController _groupDescriptionController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  // Focus nodes for text fields
+  final FocusNode _groupNameFocus = FocusNode();
+  final FocusNode _groupDescriptionFocus = FocusNode();
 
   void _onTabSelected(int index) {
     setState(() {
@@ -23,28 +28,51 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _submitGroup() async {
-    final String apiUrl = 'https://yourserver.com/api/submit_group.php';
-    final response = await http.post(
-      Uri.parse(apiUrl),
-      body: {
-        'email': widget.email,
-        'group_name': _groupNameController.text,
-        'group_description': _groupDescriptionController.text,
-      },
-    );
+    if (_formKey.currentState?.validate() ?? false) {
+      final String apiUrl = 'https://splitwise1.000webhostapp.com/make_group/make_group.php';
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: {
+          'email': widget.email,
+          'group_name': _groupNameController.text,
+          'group_description': _groupDescriptionController.text,
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      if (data['status'] == 'success') {
-        final String username = data['username'];
-        print('Username: $username');
-        // Do something with the username, e.g., show a success message
+      if (response.statusCode == 200) {
+        // Clear text fields
+        _groupNameController.clear();
+        _groupDescriptionController.clear();
+
+        // Remove focus from text fields
+        _groupNameFocus.unfocus();
+        _groupDescriptionFocus.unfocus();
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Circle is created.'),
+            backgroundColor: Colors.green,
+          ),
+        );
       } else {
-        print('Error: ${data['message']}');
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error while creating circle, please try again'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } else {
-      print('Server error: ${response.statusCode}');
     }
+  }
+
+  @override
+  void dispose() {
+    // Dispose focus nodes when the widget is disposed
+    _groupNameFocus.dispose();
+    _groupDescriptionFocus.dispose();
+    super.dispose();
   }
 
   @override
@@ -164,17 +192,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMakeGroupContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Center(
-        child: Card(
-          color: Colors.white.withOpacity(0.8),
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+  return SingleChildScrollView(
+    padding: const EdgeInsets.all(16.0),
+    child: Center(
+      child: Card(
+        color: Colors.white.withOpacity(0.8),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -187,22 +217,40 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 SizedBox(height: 50),
-                TextField(
+                TextFormField(
                   controller: _groupNameController,
+                  focusNode: _groupNameFocus,
                   decoration: InputDecoration(
-                    labelText: 'Enter Group Name',
+                    labelText: 'Enter Circle Name',
                     labelStyle: TextStyle(color: Colors.black),
                     border: OutlineInputBorder(),
+                    errorStyle: TextStyle(color: Colors.red), // Error text color
                   ),
+                  style: TextStyle(color: Colors.black), // Regular text color
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a circle name';
+                    }
+                    return null;
+                  },
                 ),
                 SizedBox(height: 20),
-                TextField(
+                TextFormField(
                   controller: _groupDescriptionController,
+                  focusNode: _groupDescriptionFocus,
                   decoration: InputDecoration(
-                    labelText: 'Enter Group Description',
+                    labelText: 'Enter Circle Description',
                     labelStyle: TextStyle(color: Colors.black),
                     border: OutlineInputBorder(),
+                    errorStyle: TextStyle(color: Colors.red), // Error text color
                   ),
+                  style: TextStyle(color: Colors.black), // Regular text color
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a circle description';
+                    }
+                    return null;
+                  },
                 ),
                 SizedBox(height: 20),
                 ElevatedButton(
@@ -214,8 +262,10 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }
 
 class TabItem extends StatelessWidget {
