@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'ManageGroupPage.dart';
 
 class HomePage extends StatefulWidget {
   final String email;
@@ -64,6 +65,18 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       }
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchGroups() async {
+    final apiUrl = 'https://splitwise1.000webhostapp.com/managed_group/managed_group.php';
+    final response = await http.post(Uri.parse(apiUrl), body: {'email': widget.email});
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.cast<Map<String, dynamic>>();
+    } else {
+      return [];
     }
   }
 
@@ -158,6 +171,8 @@ class _HomePageState extends State<HomePage> {
     switch (_selectedIndex) {
       case 1:
         return _buildMakeGroupContent();
+      case 2:
+        return _buildManageGroupsContent();
       default:
         return Center(
           child: Column(
@@ -192,77 +207,127 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMakeGroupContent() {
-  return SingleChildScrollView(
-    padding: const EdgeInsets.all(16.0),
-    child: Center(
-      child: Card(
-        color: Colors.white.withOpacity(0.8),
-        elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Initiate Your Circle',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: Colors.purple,
-                    fontWeight: FontWeight.bold,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: Card(
+          color: Colors.white.withOpacity(0.8),
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Initiate Your Circle',
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Colors.purple,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                SizedBox(height: 50),
-                TextFormField(
-                  controller: _groupNameController,
-                  focusNode: _groupNameFocus,
-                  decoration: InputDecoration(
-                    labelText: 'Enter Circle Name',
-                    labelStyle: TextStyle(color: Colors.black),
-                    border: OutlineInputBorder(),
-                    errorStyle: TextStyle(color: Colors.red), // Error text color
+                  SizedBox(height: 50),
+                  TextFormField(
+                    controller: _groupNameController,
+                    focusNode: _groupNameFocus,
+                    decoration: InputDecoration(
+                      labelText: 'Enter Circle Name',
+                      labelStyle: TextStyle(color: Colors.black),
+                      border: OutlineInputBorder(),
+                      errorStyle: TextStyle(color: Colors.red),
+                    ),
+                    style: TextStyle(color: Colors.black),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a circle name';
+                      }
+                      return null;
+                    },
                   ),
-                  style: TextStyle(color: Colors.black), // Regular text color
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a circle name';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-                TextFormField(
-                  controller: _groupDescriptionController,
-                  focusNode: _groupDescriptionFocus,
-                  decoration: InputDecoration(
-                    labelText: 'Enter Circle Description',
-                    labelStyle: TextStyle(color: Colors.black),
-                    border: OutlineInputBorder(),
-                    errorStyle: TextStyle(color: Colors.red), // Error text color
+                  SizedBox(height: 20),
+                  TextFormField(
+                    controller: _groupDescriptionController,
+                    focusNode: _groupDescriptionFocus,
+                    decoration: InputDecoration(
+                      labelText: 'Enter Circle Description',
+                      labelStyle: TextStyle(color: Colors.black),
+                      border: OutlineInputBorder(),
+                      errorStyle: TextStyle(color: Colors.red),
+                    ),
+                    style: TextStyle(color: Colors.black),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a circle description';
+                      }
+                      return null;
+                    },
                   ),
-                  style: TextStyle(color: Colors.black), // Regular text color
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a circle description';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _submitGroup,
-                  child: Text('Submit'),
-                ),
-              ],
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _submitGroup,
+                    child: Text('Submit'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
+    );
+  }
+
+Widget _buildManageGroupsContent() {
+  return FutureBuilder<List<Map<String, dynamic>>>(
+    future: _fetchGroups(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError) {
+        return Center(child: Text('Error: ${snapshot.error}'));
+      } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+        final groups = snapshot.data!;
+        return ListView.builder(
+          itemCount: groups.length,
+          itemBuilder: (context, index) {
+            final group = groups[index];
+            return Card(
+              child: ListTile(
+                title: Text(group['name']),
+                subtitle: Text(group['description']),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ManageGroupPage(
+                        email: widget.email,
+                        groupName: group['name'],
+                        groupDescription: group['description'],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      } else {
+        return Center(
+          child: Text(
+            'There is no circle created yet.',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+        );
+      }
+    },
   );
 }
 
@@ -278,18 +343,34 @@ class TabItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        onTap(index);
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        margin: EdgeInsets.symmetric(horizontal: 8.0),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.black),
-          borderRadius: BorderRadius.circular(20.0),
+      onTap: () => onTap(index),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              text,
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 8),
+            Container(
+              height: 2,
+              width: 20,
+              color: Colors.white,
+            ),
+          ],
         ),
-        child: Text(text),
       ),
     );
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: HomePage(email: 'user@example.com'), // Replace with the actual user's email
+  ));
 }
