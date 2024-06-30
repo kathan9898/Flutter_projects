@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'home_page.dart'; // Import the HomePage widget
 
@@ -33,6 +34,8 @@ class LoginPage extends StatelessWidget {
   Widget build(BuildContext context) {
     TextEditingController emailController = TextEditingController();
     TextEditingController passwordController = TextEditingController();
+
+    final storage = FlutterSecureStorage();
 
     return Scaffold(
       body: Stack(
@@ -145,6 +148,10 @@ class LoginPage extends StatelessWidget {
 
                                               http.get(Uri.parse(verifyUrl)).then((verifyResponse) {
                                                 if (verifyResponse.statusCode == 200) {
+                                                  // Store email and password securely
+                                                  storage.write(key: 'email', value: email);
+                                                  storage.write(key: 'password', value: password);
+
                                                   Navigator.of(context).pop(); // Close the password dialog
                                                   Navigator.pushReplacement(
                                                     context,
